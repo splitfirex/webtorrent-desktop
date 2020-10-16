@@ -283,8 +283,12 @@ const dispatchHandlers = {
   openSubtitles: () => controllers.subtitles().openSubtitles(),
   selectSubtitle: (index) => controllers.subtitles().selectSubtitle(index),
   toggleSubtitlesMenu: () => controllers.subtitles().toggleSubtitlesMenu(),
+  toggleSubtitlesControls: () => controllers.subtitles().toggleSubtitlesControls(),
   checkForSubtitles: () => controllers.subtitles().checkForSubtitles(),
   addSubtitles: (files, autoSelect) => controllers.subtitles().addSubtitles(files, autoSelect),
+  toggleLoginPage:()=> controllers.subtitles().toggleLoginPage(),
+  tryToLogin:()=> controllers.subtitles().tryToLogin(),
+  openSubtitlesLogin:(username, password)=> controllers.subtitles().openSubtitlesLogin(username, password),
 
   // Audio Tracks
   selectAudioTrack: (index) => controllers.audioTracks().selectAudioTrack(index),

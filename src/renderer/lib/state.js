@@ -103,7 +103,15 @@ function getDefaultPlayState () {
     subtitles: {
       tracks: [], /* subtitle tracks, each {label, language, ...} */
       selectedIndex: -1, /* current subtitle track */
-      showMenu: false /* popover menu, above the video */
+      showMenu: false, /* popover menu, above the video */
+      showControls: false,
+      showLoginPage: false,
+      showSearchBar: false,
+      listSubtitles:[],
+      subtitleOffset:0.0,
+      isProcessLogin: false,
+      loginError: null,
+      openSubApi: null
     },
     audioTracks: {
       tracks: [],

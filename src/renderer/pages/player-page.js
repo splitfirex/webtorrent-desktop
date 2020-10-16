@@ -2,10 +2,12 @@ const React = require('react')
 const Bitfield = require('bitfield')
 const prettyBytes = require('prettier-bytes')
 
+
 const TorrentSummary = require('../lib/torrent-summary')
 const Playlist = require('../lib/playlist')
 const { dispatch, dispatcher } = require('../lib/dispatcher')
 const config = require('../../config')
+const SubtitlePage = require('./subtitles-page')
 
 // Shows a streaming video player. Standard features + Chromecast + Airplay
 module.exports = class Player extends React.Component {
@@ -15,6 +17,7 @@ module.exports = class Player extends React.Component {
     const state = this.props.state
     const showVideo = state.playing.location === 'local'
     const showControls = state.playing.location !== 'external'
+    const showSubtitlesControls = state.playing.subtitles.showControls
     return (
       <div
         className='player'
@@ -23,6 +26,7 @@ module.exports = class Player extends React.Component {
       >
         {showVideo ? renderMedia(state) : renderCastScreen(state)}
         {showControls ? renderPlayerControls(state) : null}
+        {showSubtitlesControls ? renderSubtitleControls(state) : null}
       </div>
     )
   }
@@ -475,9 +479,11 @@ function renderCastOptions (state) {
 
 function renderSubtitleOptions (state) {
   const subtitles = state.playing.subtitles
-  if (!subtitles.tracks.length || !subtitles.showMenu) return
+  if (!subtitles.showControls) return
+  console.log("PRUEBA")
+  return (<SubtitlePage state ></SubtitlePage>);
 
-  const items = subtitles.tracks.map(function (track, ix) {
+  /*const items = subtitles.tracks.map(function (track, ix) {
     const isSelected = state.playing.subtitles.selectedIndex === ix
     return (
       <li key={ix} onClick={dispatcher('selectSubtitle', ix)}>
@@ -497,7 +503,12 @@ function renderSubtitleOptions (state) {
         None
       </li>
     </ul>
-  )
+  )*/
+}
+
+function renderSubtitleControls(state){
+  const subtitleState = state.playing.subtitles;
+  return <SubtitlePage {...subtitleState} ></SubtitlePage>;
 }
 
 function renderAudioTrackOptions (state) {
@@ -520,6 +531,8 @@ function renderAudioTrackOptions (state) {
     </ul>
   )
 }
+
+
 
 function renderPlayerControls (state) {
   const positionPercent = 100 * state.playing.currentTime / state.playing.duration
@@ -709,7 +722,6 @@ function renderPlayerControls (state) {
     >
       {elements}
       {renderCastOptions(state)}
-      {renderSubtitleOptions(state)}
       {renderAudioTrackOptions(state)}
     </div>
   )
@@ -749,9 +761,11 @@ function renderPlayerControls (state) {
   function handleSubtitles (e) {
     if (!state.playing.subtitles.tracks.length || e.ctrlKey || e.metaKey) {
       // if no subtitles available select it
-      dispatch('openSubtitles')
+     // dispatch('openSubtitles')
+     dispatch('toggleSubtitlesControls')
     } else {
-      dispatch('toggleSubtitlesMenu')
+      //dispatch('toggleSubtitlesMenu')
+      dispatch('toggleSubtitlesControls')
     }
   }
 
