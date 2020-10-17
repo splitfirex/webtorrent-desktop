@@ -2,6 +2,21 @@ const electron = require("electron");
 const fs = require("fs");
 const path = require("path");
 const parallel = require("run-parallel");
+const Trakt = require("trakt.tv");
+const request = require("request");
+const config = require('./../../config')
+
+const trackOptions = {
+  client_id: "secret",
+  client_secret:
+    "secret",
+  redirect_uri: null, // defaults to 'urn:ietf:wg:oauth:2.0:oob'
+  api_url: null, // defaults to 'https://api.trakt.tv'
+  useragent: null, // defaults to 'trakt.tv/<version>'
+  pagination: true, // defaults to false, global pagination (see below)
+};
+
+const trakt = new Trakt(trackOptions);
 
 const remote = electron.remote;
 
@@ -61,6 +76,7 @@ module.exports = class SubtitlesController {
     subtitles.openSubApi
       .login()
       .then((res) => {
+        subtitles.openSubtitlesToken = res.token;
         subtitles.showLoginPage = !subtitles.showLoginPage;
         subtitles.isProcessLogin = !subtitles.isProcessLogin;
         subtitles.showSearchBar = true;
@@ -72,8 +88,55 @@ module.exports = class SubtitlesController {
       });
   }
 
-  openSubtitlesLogin(username, password) {}
+  cleanMovieTitle(fileName) {}
 
+  searchSubtitles(textSearch) {
+    const subtitles = this.state.playing.subtitles;
+
+    const searchQuery = {};
+
+    const myRegexp = /[S|s](\d+)[E|e](\d+)/g;
+    const match = myRegexp.exec(textSearch);
+    let movieShowTitle = textSearch;
+    if (match != null) {
+      searchQuery.season = match[1];
+      searchQuery.episode = match[2];
+      movieShowTitle = movieShowTitle.replace(match[0],"");
+    }
+     
+    trakt.search
+      .text({
+        query: movieShowTitle,
+        type: "movie,show",
+      })
+      .then((response) => {
+        const imbdid = response.data[0].show ? response.data[0].show.ids.imdb : response.data[0].movie.ids.imdb;
+        
+        searchQuery.sublanguageid = "es";
+        searchQuery.extensions = ["srt", "vtt"];
+        searchQuery.limit = "10";
+        searchQuery.gzip= false
+
+        searchQuery.imdbid = imbdid;
+
+          subtitles.openSubApi
+          .search(searchQuery)
+          .then((subs) => {
+            subtitles.listSubtitles = subs["es"];
+          })
+          .catch((err) => {
+            subtitles.listSubtitles = [];
+          });
+      });
+  }
+
+  selectSubtitleOpenSubtitles(idx){
+    const subtitles = this.state.playing.subtitles;
+    const downPath = config.DEFAULT_DOWNLOAD_PATH+ "\\"+subtitles.listSubtitles[idx].filename;
+    request(subtitles.listSubtitles[idx].url).pipe(fs.createWriteStream())
+    this.addSubtitles([subtitles.listSubtitles[idx].url], true);
+  }
+  
   addSubtitles(files, autoSelect) {
     // Subtitles are only supported when playing video files
     if (this.state.playing.type !== "video") return;
@@ -137,8 +200,12 @@ function loadSubtitle(file, cb) {
 
   // Read the .SRT or .VTT file, parse it, add subtitle track
   const filePath = file.path || file;
-
-  const vttStream = fs.createReadStream(filePath).pipe(srtToVtt());
+  let vttStream = null
+  try{
+    vttStream = fs.createReadStream(filePath).pipe(srtToVtt());
+  }catch(er){
+    vttStream = request(filePath).pipe(srtToVtt());
+  }
 
   concat(vttStream, function (err, buf) {
     if (err) return dispatch("error", "Can't parse subtitles file.");
@@ -178,35 +245,5 @@ function relabelSubtitles(subtitles) {
     const lang = track.language;
     counts[lang] = (counts[lang] || 0) + 1;
     track.label = counts[lang] > 1 ? lang + " " + counts[lang] : lang;
-  });
-}
-
-function loadOpenSubtitles() {
-  const OpenSubtitles = new OS({
-    useragent: "UserAgent",
-    username: "splitfirex@gmail.com",
-    password: "Daniel89",
-    ssl: true,
-  });
-
-  OpenSubtitles.login().then((res) => {
-    console.log(res.token);
-
-    OpenSubtitles.search({
-      sublanguageid: "es", // Can be an array.join, 'all', or be omitted.
-
-      extensions: ["srt", "vtt"], // Accepted extensions, defaults to 'srt'.
-      limit: "10", // Can be 'best', 'all' or an
-      // arbitrary nb. Defaults to 'best'
-      imdbid: "tt3861390", // 'tt528809' is fine too.
-      query: this.state.playing.fileName,
-      gzip: false, // returns url to gzipped subtitles, defaults to false
-    })
-      .then((subtitles) => {
-        console.log(subtitles);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
   });
 }

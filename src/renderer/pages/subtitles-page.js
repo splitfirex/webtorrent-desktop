@@ -1,6 +1,8 @@
 const React = require("react");
 const { dispatch, dispatcher } = require("../lib/dispatcher");
 
+let typingTimer;
+
 module.exports = class SubtitlePage extends React.Component {
   render() {
     const state = this.props;
@@ -32,7 +34,7 @@ function tryToLogin(event) {
   const username = event.target.elements.username.value;
   const password = event.target.elements.password.value;
 
-  dispatch("tryToLogin");
+  dispatch("tryToLogin", username, password);
 }
 
 function renderOpenSubtitlesInputFields(state) {
@@ -66,6 +68,16 @@ function renderOpenSubtitlesInputFields(state) {
   );
 }
 
+function tryToSearch(event) {
+  const value = event.target.value;
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(()=>doneTyping(value), 3000);
+}
+
+function doneTyping(text){
+  dispatch("searchSubtitles", text);
+}
+
 function renderOpenSubtitlesInputSearch(state) {
   return (
     <div className="searchSection">
@@ -74,14 +86,19 @@ function renderOpenSubtitlesInputSearch(state) {
         style={{ fontSize: "30px", marginTop: "-3px" }}
       ></i>
       <h1 style={{ textAlign: "center" }}>Search subtitle</h1>
-      <input type="text" name="searchBar" className="searchBar"></input>
+      <input type="text" name="searchBar" className="searchBar"
+      onKeyUp={(e=>tryToSearch(e))}></input>
 
-      <ul>{renderSubtitleItem(null)}</ul>
+      <ul>{renderSubtitleItem(state.listSubtitles)}</ul>
     </div>
   );
 }
 
 function renderSubtitleItem(listSubtitles) {
-  const pruebas = ["prueba1", "prueba2", "prueba3"];
-  return pruebas.map((x) => <li></li>);
+  return listSubtitles.map((x,idx) => <li key={"sub_"+idx} onClick={()=>selectSubtitle(idx)}>{x.filename}</li>);
+}
+
+
+function selectSubtitle(idx){
+  dispatch("selectSubtitleOpenSubtitles", idx);
 }

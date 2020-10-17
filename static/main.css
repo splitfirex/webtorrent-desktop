@@ -1049,3 +1049,11 @@ video::-webkit-media-text-track-container {
   background-color: #4b79a1;
   color: whitesmoke;
 }
+
+ul {
+  list-style-type: none;
+}
+
+li{
+  text-overflow: ellipsis;
+}

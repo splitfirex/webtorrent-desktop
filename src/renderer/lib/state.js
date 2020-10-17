@@ -109,6 +109,7 @@ function getDefaultPlayState () {
       showSearchBar: false,
       listSubtitles:[],
       subtitleOffset:0.0,
+      openSubtitlesToken: "",
       isProcessLogin: false,
       loginError: null,
       openSubApi: null
