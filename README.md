@@ -4,7 +4,7 @@
     <img src="https://webtorrent.io/img/WebTorrent.png" alt="WebTorrent" width="200">
   </a>
   <br>
-  WebTorrent Desktop
+  WebTorrent Desktop + OpenSubtitles service!
   <br>
   <br>
 </h1>
