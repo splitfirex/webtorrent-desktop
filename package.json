@@ -37,6 +37,7 @@
     "prop-types": "^15.7.2",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "request": "^2.88.2",
     "rimraf": "^3.0.2",
     "run-parallel": "^1.1.9",
     "semver": "^7.3.2",
