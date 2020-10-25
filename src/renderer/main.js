@@ -289,7 +289,14 @@ const dispatchHandlers = {
   toggleLoginPage:()=> controllers.subtitles().toggleLoginPage(),
   tryToLogin:(username, password)=> controllers.subtitles().tryToLogin(username, password),
   searchSubtitles:(text)=> controllers.subtitles().searchSubtitles(text),
+  searchSubtitlesText:(text)=> controllers.subtitles().searchSubtitlesText(text),
   selectSubtitleOpenSubtitles:(idx) => controllers.subtitles().selectSubtitleOpenSubtitles(idx),
+  updateField:(field,value) =>controllers.subtitles().updateField(field,value),
+  osSubtitlesType:(value) => controllers.subtitles().osSubtitlesType(value),
+  downloadSubtitle:(idx) =>controllers.subtitles().downloadSubtitle(idx),
+  removelocalSubtitleIndex:(idx) =>controllers.subtitles().removelocalSubtitleIndex(idx),
+  toggleSubtitles:()=>controllers.subtitles().toggleSubtitles(),
+  localSubtitleIndex:(idx) => controllers.subtitles().localSubtitleIndex(idx),
 
   // Audio Tracks
   selectAudioTrack: (index) => controllers.audioTracks().selectAudioTrack(index),

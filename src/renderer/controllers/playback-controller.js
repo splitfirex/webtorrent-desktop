@@ -269,6 +269,7 @@ module.exports = class PlaybackController {
     // update state
     state.playing.infoHash = infoHash
     state.playing.fileIndex = index
+    state.playing.filePath= fileSummary.path.replace(fileSummary.name,"")
     state.playing.fileName = fileSummary.name
     state.playing.type = TorrentPlayer.isVideo(fileSummary) ? 'video'
       : TorrentPlayer.isAudio(fileSummary) ? 'audio'
@@ -341,7 +342,7 @@ module.exports = class PlaybackController {
     if (!state.playing.isReady) telemetry.logPlayAttempt('abandoned') // user gave up waiting
 
     // Reset the window contents back to the home screen
-    state.playing = State.getDefaultPlayState()
+    //state.playing = State.getDefaultPlayState()
     state.server = null
 
     // Reset the window size and location back to where it was

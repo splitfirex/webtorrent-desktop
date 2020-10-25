@@ -1057,3 +1057,30 @@ ul {
 li{
   text-overflow: ellipsis;
 }
+
+video.textS::cue{
+  font-size: 1rem;
+}
+video.textM::cue{
+  font-size: 1.5rem;
+}
+video.textL::cue{
+  font-size: 2rem;
+}
+
+video.textColorWhite::cue{
+  color: white
+}
+video.textColorYellow::cue{
+  color: yellow
+}
+video.textBGnone::cue{
+  background-color: none;
+}
+video.textBGblack::cue{
+  background-color: black;
+}
+
+video.textBGTransparent::cue{
+  background-color: rgba(0, 0, 0, 0.5);
+}

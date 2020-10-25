@@ -4,12 +4,15 @@ const path = require("path");
 const parallel = require("run-parallel");
 const Trakt = require("trakt.tv");
 const request = require("request");
-const config = require('./../../config')
+
+const TorrentSummary = require("../lib/torrent-summary");
+
+const config = require("./../../config");
 
 const trackOptions = {
-  client_id: "secret",
+  client_id: "f94ef4dd28ae11ee4d3952b1c028bf8954bffc311094e65f4a68bf3563f475b2",
   client_secret:
-    "secret",
+    "fc97966ec6ac0575eab1a675fcebc2d02f6f4cd540ee09e5899c509ceda9e9cf",
   redirect_uri: null, // defaults to 'urn:ietf:wg:oauth:2.0:oob'
   api_url: null, // defaults to 'https://api.trakt.tv'
   useragent: null, // defaults to 'trakt.tv/<version>'
@@ -20,6 +23,8 @@ const trakt = new Trakt(trackOptions);
 
 const remote = electron.remote;
 
+let typingTimer;
+
 const { dispatch } = require("../lib/dispatcher");
 
 const OS = require("opensubtitles-api");
@@ -27,6 +32,31 @@ const OS = require("opensubtitles-api");
 module.exports = class SubtitlesController {
   constructor(state) {
     this.state = state;
+
+    const subtitles = this.state.playing.subtitles;
+    subtitles.isProcessLogin = !subtitles.isProcessLogin;
+    subtitles.loginError = null;
+
+    subtitles.openSubApi = new OS({
+      useragent: "UserAgent",
+      username: this.state.playing.subtitles.osUsername,
+      password: this.state.playing.subtitles.osPassword,
+      ssl: true,
+    });
+
+    subtitles.openSubApi
+      .login()
+      .then((res) => {
+        subtitles.openSubtitlesToken = res.token;
+        subtitles.showLoginPage = !subtitles.showLoginPage;
+        subtitles.isProcessLogin = !subtitles.isProcessLogin;
+        subtitles.showSearchBar = true;
+      })
+      .catch((err) => {
+        subtitles.isProcessLogin = !subtitles.isProcessLogin;
+        subtitles.showSearchBar = false;
+        subtitles.loginError = err;
+      });
   }
 
   openSubtitles() {
@@ -47,8 +77,9 @@ module.exports = class SubtitlesController {
   }
 
   toggleSubtitlesControls() {
-    const subtitles = this.state.playing.subtitles;
-    subtitles.showControls = !subtitles.showControls;
+    state.location.go({
+      url: "subtitles",
+    });
   }
 
   toggleSubtitlesMenu() {
@@ -59,6 +90,18 @@ module.exports = class SubtitlesController {
   toggleLoginPage() {
     const subtitles = this.state.playing.subtitles;
     subtitles.showLoginPage = !subtitles.showLoginPage;
+  }
+
+  updateField(field, value) {
+    const subtitles = this.state.playing.subtitles;
+    subtitles[field] = value;
+  }
+
+  osSubtitlesType(value) {
+    const subtitles = this.state.playing.subtitles;
+    subtitles.selectedTraktType = value;
+
+    if (subtitles.searchText !== "") this.searchSubtitles(subtitles.searchText);
   }
 
   tryToLogin(username, password) {
@@ -90,8 +133,56 @@ module.exports = class SubtitlesController {
 
   cleanMovieTitle(fileName) {}
 
+  searchSubtitlesText(textSearch) {
+    const subtitles = this.state.playing.subtitles;
+    subtitles.searchText = textSearch;
+
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => this.searchSubtitles(textSearch), 3000);
+  }
+
+  toggleSubtitles() {
+    const subtitles = this.state.playing.subtitles;
+    subtitles.selectedIndex = -1;
+
+    let torrentSummary = TorrentSummary.getByKey(
+      this.state,
+      this.state.playing.infoHash
+    );
+    const fileSummary = torrentSummary.files[this.state.playing.fileIndex];
+    fileSummary.selectedSubtitle = undefined;
+  }
+
+  localSubtitleIndex(idx) {
+    const subtitles = this.state.playing.subtitles;
+    subtitles.selectedIndex = idx;
+    const testFolder =
+      config.DEFAULT_DOWNLOAD_PATH + "\\" + this.state.playing.filePath;
+    let listLocalSubtitles = [];
+    listLocalSubtitles = fs
+      .readdirSync(testFolder)
+      .filter((f) => f.indexOf(".srt") > -1);
+    const selPath =
+      config.DEFAULT_DOWNLOAD_PATH +
+      "\\" +
+      this.state.playing.filePath +
+      "\\" +
+      listLocalSubtitles[idx];
+
+    let torrentSummary = TorrentSummary.getByKey(
+      this.state,
+      this.state.playing.infoHash
+    );
+    const fileSummary = torrentSummary.files[this.state.playing.fileIndex];
+    fileSummary.selectedSubtitle = selPath;
+
+    this.addSubtitles([selPath], true);
+  }
+
   searchSubtitles(textSearch) {
     const subtitles = this.state.playing.subtitles;
+    subtitles.searchText = textSearch;
+    subtitles.isSearching = true;
 
     const searchQuery = {};
 
@@ -101,42 +192,104 @@ module.exports = class SubtitlesController {
     if (match != null) {
       searchQuery.season = match[1];
       searchQuery.episode = match[2];
-      movieShowTitle = movieShowTitle.replace(match[0],"");
+      movieShowTitle = movieShowTitle.replace(match[0], "");
     }
-     
+
+    let typeTrakt =
+      this.state.playing.subtitles.selectedTraktType === 0 ? "show" : "movie";
+
     trakt.search
       .text({
         query: movieShowTitle,
-        type: "movie,show",
+        type: typeTrakt,
       })
       .then((response) => {
-        const imbdid = response.data[0].show ? response.data[0].show.ids.imdb : response.data[0].movie.ids.imdb;
-        
+        const imbdid = response.data[0].show
+          ? response.data[0].show.ids.imdb
+          : response.data[0].movie.ids.imdb;
+
+        searchQuery.gzip = false;
         searchQuery.sublanguageid = "es";
         searchQuery.extensions = ["srt", "vtt"];
         searchQuery.limit = "10";
-        searchQuery.gzip= false
+        if (response.data.length > 0) {
+          searchQuery.imdbid = imbdid;
+        } else {
+          searchQuery.query = subtitles.searchText;
+        }
 
-        searchQuery.imdbid = imbdid;
-
-          subtitles.openSubApi
+        subtitles.openSubApi
           .search(searchQuery)
           .then((subs) => {
-            subtitles.listSubtitles = subs["es"];
+            if (subs["es"]) {
+              subtitles.listSubtitles = subs["es"];
+            } else {
+              subtitles.listSubtitles = [];
+            }
+            subtitles.isSearching = false;
           })
           .catch((err) => {
             subtitles.listSubtitles = [];
+            subtitles.isSearching = false;
           });
       });
   }
 
-  selectSubtitleOpenSubtitles(idx){
+  removelocalSubtitleIndex(idx) {
     const subtitles = this.state.playing.subtitles;
-    const downPath = config.DEFAULT_DOWNLOAD_PATH+ "\\"+subtitles.listSubtitles[idx].filename;
-    request(subtitles.listSubtitles[idx].url).pipe(fs.createWriteStream())
-    this.addSubtitles([subtitles.listSubtitles[idx].url], true);
+    const testFolder =
+      config.DEFAULT_DOWNLOAD_PATH + "\\" + this.state.playing.filePath;
+    let listLocalSubtitles = [];
+    listLocalSubtitles = fs
+      .readdirSync(testFolder)
+      .filter((f) => f.indexOf(".srt") > -1);
+    const delPath =
+      config.DEFAULT_DOWNLOAD_PATH +
+      "\\" +
+      this.state.playing.filePath +
+      "\\" +
+      listLocalSubtitles[idx];
+
+    if (idx === subtitles.selectedIndex) subtitles.selectedIndex = -1;
+
+    try {
+      fs.unlinkSync(delPath);
+      //file removed
+    } catch (err) {
+      console.error(err);
+    }
   }
-  
+
+  downloadSubtitle(idx) {
+    const subtitles = this.state.playing.subtitles;
+    subtitles.isSearching = true;
+    const downPath =
+      config.DEFAULT_DOWNLOAD_PATH +
+      "\\" +
+      this.state.playing.filePath +
+      "\\" +
+      subtitles.listSubtitles[idx].filename;
+    let stream = request(subtitles.listSubtitles[idx].url).pipe(
+      fs.createWriteStream(downPath)
+    );
+    stream.on("close", function () {
+      subtitles.isSearching = false;
+    });
+  }
+
+  selectSubtitleOpenSubtitles(idx) {
+    const subtitles = this.state.playing.subtitles;
+    const downPath =
+      config.DEFAULT_DOWNLOAD_PATH +
+      "\\" +
+      this.state.playing.filePath +
+      "\\" +
+      subtitles.listSubtitles[idx].filename;
+    request(subtitles.listSubtitles[idx].url).pipe(
+      fs.createWriteStream(downPath)
+    );
+  }
+
   addSubtitles(files, autoSelect) {
     // Subtitles are only supported when playing video files
     if (this.state.playing.type !== "video") return;
@@ -200,10 +353,10 @@ function loadSubtitle(file, cb) {
 
   // Read the .SRT or .VTT file, parse it, add subtitle track
   const filePath = file.path || file;
-  let vttStream = null
-  try{
+  let vttStream = null;
+  try {
     vttStream = fs.createReadStream(filePath).pipe(srtToVtt());
-  }catch(er){
+  } catch (er) {
     vttStream = request(filePath).pipe(srtToVtt());
   }
 

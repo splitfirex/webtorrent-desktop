@@ -20,8 +20,8 @@ module.exports = class TorrentController {
 
       // Check if an existing (non-active) torrent has the same info hash
       if (torrents.find((t) => t.infoHash === infoHash)) {
-        ipcRenderer.send('wt-stop-torrenting', infoHash)
-        return dispatch('error', 'Cannot add duplicate torrent')
+        //ipcRenderer.send('wt-stop-torrenting', infoHash)
+        return;// dispatch('error', 'Cannot add duplicate torrent')
       }
 
       torrentSummary = {

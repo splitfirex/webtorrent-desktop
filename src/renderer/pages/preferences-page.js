@@ -6,6 +6,7 @@ const Checkbox = require('material-ui/Checkbox').default
 const RaisedButton = require('material-ui/RaisedButton').default
 const Heading = require('../components/heading')
 const PathSelector = require('../components/path-selector')
+const TextField = require("material-ui/TextField").default;
 
 const { dispatch } = require('../lib/dispatcher')
 const config = require('../../config')
@@ -61,6 +62,36 @@ class PreferencesPage extends React.Component {
         />
       </Preference>
     )
+  }
+
+  autoLoadingTorrents () {
+    return (
+      <Preference>
+         <Checkbox
+          className='control'
+          checked={this.props.state.saved.prefs.autoLoadTorrent}
+          label='Autoload Torrent from file'
+          onClick={(e)=>dispatch('updatePreferences', 'autoLoadTorrent',!this.props.state.saved.prefs.autoLoadTorrent)}
+        />
+         <TextField
+          className='control'
+          value={this.props.state.saved.prefs.autoLoadTorrentPTime}
+          floatingLabelText="Pooling time (Minutes)"
+          onChange={(e)=>dispatch('updatePreferences', 'autoLoadTorrentPTime', e.currentTarget.value)}
+        />
+        <TextField
+          className='control'
+          style={{width:"100%"}}
+          value={this.props.state.saved.prefs.autoLoadTorrentJson}
+          floatingLabelText="Autoload JSON URL"
+          onChange={(e)=>dispatch('updatePreferences', 'autoLoadTorrentJson', e.currentTarget.value)}
+        />
+      </Preference>
+    )
+  }
+
+  handleUpdateChanges(){
+    
   }
 
   handleOpenExternalPlayerChange (e, isChecked) {
@@ -253,6 +284,9 @@ class PreferencesPage extends React.Component {
         <PreferencesSection title='General'>
           {this.setStartupCheckbox()}
           {this.soundNotificationsCheckbox()}
+        </PreferencesSection>
+        <PreferencesSection title='Autoloading Torrent'>
+          {this.autoLoadingTorrents()}
         </PreferencesSection>
       </div>
     )
