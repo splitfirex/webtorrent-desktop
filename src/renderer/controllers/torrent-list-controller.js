@@ -36,13 +36,16 @@ module.exports = class TorrentListController {
           json: true,
         },
         function (error, response, body) {
+          let er = new RegExp(/xt\=urn:btih:(.*?)&/, "i");
           console.log("pooling enabled!");
-          const currentMagnets = this.state.saved.torrents.map(x=>x.magnetURI);
-          console.log(currentMagnets);
-          console.log(body.filter(x=>!currentMagnets.includes(x)))
-          body.filter(x=>!currentMagnets.includes(x)).forEach((magnet) => {
+          const currentMagnets = this.state.saved.torrents.map(
+            (x) => x.infoHash.toUpperCase()
+          );
+          body.forEach((magnet) => {
             try {
-              this.addTorrent(magnet);
+
+              let group = er.exec(magnet);
+              if (!currentMagnets.includes(group[1])) this.addTorrent(magnet);
             } catch (er) {
               console.log(er);
             }
