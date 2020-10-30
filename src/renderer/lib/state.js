@@ -103,7 +103,26 @@ function getDefaultPlayState () {
     subtitles: {
       tracks: [], /* subtitle tracks, each {label, language, ...} */
       selectedIndex: -1, /* current subtitle track */
-      showMenu: false /* popover menu, above the video */
+      showMenu: false, /* popover menu, above the video */
+      showControls: false,
+      showLoginPage: false,
+      showSearchBar: false,
+      listSubtitles:[],
+      subtitleOffset:0.0,
+      openSubtitlesToken: "",
+      isSearching: false,
+      searchText:"",
+      isProcessLogin: false,
+      loginError: null,
+      openSubApi: null,
+      selectedTraktType: 0,
+      subtitlesColor: 0,
+      subtitlesBG: 0,
+      subtitlesSize: 1,
+      traktClientId:"f94ef4dd28ae11ee4d3952b1c028bf8954bffc311094e65f4a68bf3563f475b2",
+      traktSecret:"fc97966ec6ac0575eab1a675fcebc2d02f6f4cd540ee09e5899c509ceda9e9cf",
+      osUsername:"",
+      osPassword:"",
     },
     audioTracks: {
       tracks: [],
@@ -129,7 +148,10 @@ function setupStateSaved () {
       soundNotifications: true,
       autoAddTorrents: false,
       torrentsFolderPath: '',
-      highestPlaybackPriority: true
+      highestPlaybackPriority: true,
+      autoLoadTorrent: false,
+      autoLoadTorrentJson: '',
+      autoLoadTorrentPTime: 1,
     },
     torrents: config.DEFAULT_TORRENTS.map(createTorrentObject),
     torrentsToResume: [],

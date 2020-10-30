@@ -12,6 +12,7 @@ const Header = require('../components/header')
 const TorrentListPage = require('./torrent-list-page')
 
 const Views = {
+  subtitles: createGetter(()=>require('./subtitle-page')),
   home: createGetter(() => TorrentListPage),
   player: createGetter(() => require('./player-page')),
   'create-torrent': createGetter(() => require('./create-torrent-page')),

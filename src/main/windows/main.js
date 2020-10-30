@@ -38,6 +38,7 @@ function init (state, options) {
     minHeight: config.WINDOW_MIN_HEIGHT,
     minWidth: config.WINDOW_MIN_WIDTH,
     show: false,
+    fullscreenable: true,
     title: config.APP_WINDOW_TITLE,
     titleBarStyle: 'hiddenInset', // Hide title bar (Mac)
     useContentSize: true, // Specify web page size without OS chrome
