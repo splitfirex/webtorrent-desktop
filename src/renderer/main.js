@@ -32,6 +32,7 @@ const config = require('../config')
 const telemetry = require('./lib/telemetry')
 const sound = require('./lib/sound')
 const TorrentPlayer = require('./lib/torrent-player')
+const request = require('request')
 
 // Perf optimization: Needed immediately, so do not lazy load it below
 const TorrentListController = require('./controllers/torrent-list-controller')
@@ -195,6 +196,8 @@ function delayedInit () {
   onVisibilityChange()
 
   lazyLoadCast()
+
+  lazyLoadingTorrentsCast()
 }
 
 // Lazily loads Chromecast and Airplay support
@@ -204,6 +207,44 @@ function lazyLoadCast () {
     Cast.init(state, update) // Search the local network for Chromecast and Airplays
   }
   return Cast
+}
+
+// Lazily loads torrents from URL
+function lazyLoadingTorrentsCast () {
+  console.log('Trying pooling enabled!')
+
+  let poolingTime = state.saved.prefs.autoLoadTorrentPTime
+  const poolingUrl = state.saved.prefs.autoLoadTorrentJson
+  const poolingEnabled = state.saved.prefs.autoLoadTorrent
+
+  if (isNaN(poolingTime)) {
+    poolingTime = 1
+  }
+  if (poolingEnabled) {
+    console.log('pooling enabled!')
+    request(
+      {
+        url: poolingUrl,
+        json: true
+      },
+      function (error, response, body) {
+        const er = new RegExp(/xt\=urn:btih:(.*?)&/, 'i')
+        console.log('pooling enabled!')
+        const currentMagnets = state.saved.torrents.map(
+          (x) => x.infoHash.toUpperCase()
+        )
+        body.forEach((magnet) => {
+          try {
+            const group = er.exec(magnet)
+            if (!currentMagnets.includes(group[1])) dispatchHandlers.addTorrent(magnet)
+          } catch (er) {
+            console.log(er)
+          }
+        })
+      }.bind(this)
+    )
+  }
+  setTimeout(() => lazyLoadingTorrentsCast(), poolingTime * 60000)
 }
 
 // React loop:
@@ -286,17 +327,17 @@ const dispatchHandlers = {
   toggleSubtitlesControls: () => controllers.subtitles().toggleSubtitlesControls(),
   checkForSubtitles: () => controllers.subtitles().checkForSubtitles(),
   addSubtitles: (files, autoSelect) => controllers.subtitles().addSubtitles(files, autoSelect),
-  toggleLoginPage:()=> controllers.subtitles().toggleLoginPage(),
-  tryToLogin:(username, password)=> controllers.subtitles().tryToLogin(username, password),
-  searchSubtitles:(text)=> controllers.subtitles().searchSubtitles(text),
-  searchSubtitlesText:(text)=> controllers.subtitles().searchSubtitlesText(text),
-  selectSubtitleOpenSubtitles:(idx) => controllers.subtitles().selectSubtitleOpenSubtitles(idx),
-  updateField:(field,value) =>controllers.subtitles().updateField(field,value),
-  osSubtitlesType:(value) => controllers.subtitles().osSubtitlesType(value),
-  downloadSubtitle:(idx) =>controllers.subtitles().downloadSubtitle(idx),
-  removelocalSubtitleIndex:(idx) =>controllers.subtitles().removelocalSubtitleIndex(idx),
-  toggleSubtitles:()=>controllers.subtitles().toggleSubtitles(),
-  localSubtitleIndex:(idx) => controllers.subtitles().localSubtitleIndex(idx),
+  toggleLoginPage: () => controllers.subtitles().toggleLoginPage(),
+  tryToLogin: (username, password) => controllers.subtitles().tryToLogin(username, password),
+  searchSubtitles: (text) => controllers.subtitles().searchSubtitles(text),
+  searchSubtitlesText: (text) => controllers.subtitles().searchSubtitlesText(text),
+  selectSubtitleOpenSubtitles: (idx) => controllers.subtitles().selectSubtitleOpenSubtitles(idx),
+  updateField: (field, value) => controllers.subtitles().updateField(field, value),
+  osSubtitlesType: (value) => controllers.subtitles().osSubtitlesType(value),
+  downloadSubtitle: (idx) => controllers.subtitles().downloadSubtitle(idx),
+  removelocalSubtitleIndex: (idx) => controllers.subtitles().removelocalSubtitleIndex(idx),
+  toggleSubtitles: () => controllers.subtitles().toggleSubtitles(),
+  localSubtitleIndex: (idx) => controllers.subtitles().localSubtitleIndex(idx),
 
   // Audio Tracks
   selectAudioTrack: (index) => controllers.audioTracks().selectAudioTrack(index),
@@ -365,7 +406,7 @@ function dispatch (action, ...args) {
 
   // Update the virtual DOM, unless it's just a mouse move event
   if (action !== 'mediaMouseMoved' ||
-      controllers.playback().showOrHidePlayerControls()) {
+    controllers.playback().showOrHidePlayerControls()) {
     update()
   }
 }

@@ -1059,13 +1059,13 @@ li{
 }
 
 video.textS::cue{
-  font-size: 1rem;
+  font-size: 2rem;
 }
 video.textM::cue{
-  font-size: 1.5rem;
+  font-size: 2.5rem;
 }
 video.textL::cue{
-  font-size: 2rem;
+  font-size: 3.5rem;
 }
 
 video.textColorWhite::cue{
